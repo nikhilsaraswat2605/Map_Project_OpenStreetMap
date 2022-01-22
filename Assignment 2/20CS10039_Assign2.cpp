@@ -21,9 +21,13 @@ class Node // Class for Node
 {
 public:
     int id;
-    string name = "unknown";
+    string name;
     float lat;
     float lon;
+    Node()
+    {
+        this->name = "unknown";
+    }
 };
 class Way // Class for Way
 {
@@ -35,9 +39,9 @@ public:
 class OpenStreetMap // Class for OpenStreetMap (This is used for Main functioning of program)
 {
 private:
-    vector<Node> nodeSet;                     // data structure for storing the data of node
-    vector<Way> waySet;                       // data structure for storing the data of ways
-    map<int, int> nodeidhash;                 // data structure for hashing node id and index of node in nodeSet vector
+    vector<Node> nodeArray;                   // data structure for storing the data of node
+    vector<Way> wayArray;                     // data structure for storing the data of ways
+    map<int, int> nodeidhash;                 // data structure for hashing node id and index of node in nodeArray vector
     map<int, int> touch;                      // data structure to strore path between two nodes
     map<int, vector<pair<int, float>>> graph; // data structure for graph (Adjacency List)
 public:
@@ -86,7 +90,7 @@ public:
                         tempnode.name = student_name_node->first_attribute("v")->value();
                     }
                 }
-                this->nodeSet.push_back(tempnode);
+                this->nodeArray.push_back(tempnode);
             }
             else if (name == "way")
             {
@@ -104,16 +108,16 @@ public:
                         tempway.nodes.push_back(stoll(nameattribute));
                     }
                 }
-                this->waySet.push_back(tempway);
+                this->wayArray.push_back(tempway);
             }
         }
     }
     // This function is to check the validity of node id
     inline int checknodeID(int ID)
     {
-        for (int i = 0; i < nodeSet.size(); i++)
+        for (int i = 0; i < nodeArray.size(); i++)
         {
-            if (this->nodeSet[i].id == ID)
+            if (this->nodeArray[i].id == ID)
                 return i;
         }
         return -1; // if node id is not present then returning -1
@@ -148,7 +152,7 @@ public:
         string str = pat;
         bool flag = 0;
         int cnt = 1;
-        for (auto node : this->nodeSet)
+        for (auto node : this->nodeArray)
         {
             string name = node.name;
             // below transformations are for case in-sensitiveness
@@ -163,24 +167,25 @@ public:
                     if (flag == 0)
                     {
                         flag = 1;
-                        cout << "Most relevent results of the given substring: \"" << str << "\" are as following :-" << endl;
+                        cout << "\n\tMost relevent results of the given substring: \"" << str << "\" are as following :-\n"
+                             << endl;
                     }
-                    cout << setprecision(8) << fixed << "\t" << cnt << ". node id: " << node.id << "; node name: " << node.name << "; latitude: " << node.lat << "; longitude: " << node.lon << endl;
+                    cout << setprecision(8) << fixed << "\t" << cnt << ". node id: " << node.id << " ; node name: " << node.name << " ; latitude: " << node.lat << " ; longitude: " << node.lon << endl;
                     cnt++;
                 }
             }
         }
         if (flag == 0)
         {
-            cout << "Your search - " << pat << " ... - did not match any node!" << endl;
+            cout << "Your search - \"" << pat << "\" ... - did not match any node!" << endl;
         }
     }
-    // This function is for creating a hash between node id and it index in the nodeSet vector
+    // This function is for creating a hash between node id and it index in the nodeArray vector
     void hashing()
     {
-        for (int i = 0; i < this->nodeSet.size(); i++)
+        for (int i = 0; i < this->nodeArray.size(); i++)
         {
-            nodeidhash[nodeSet[i].id] = i;
+            nodeidhash[nodeArray[i].id] = i;
         }
     }
     // This function is for finding k closest nodes of a particular node
@@ -188,23 +193,25 @@ public:
     {
         set<pair<float, pair<int, string>>> knearestSet;
 
-        if (k > this->nodeSet.size())
+        if (k >= this->nodeArray.size())
         {
-            cout << "Sorry, the k value is larger than number of total nodes in the map" << endl;
+            cout << "\n\t\tSorry, the k value (" << k << ") is larger than total number of nearest nodes of this node in the map\n"
+                 << endl;
             return;
         }
-        for (int i = 0; i < this->nodeSet.size(); i++)
+        for (int i = 0; i < this->nodeArray.size(); i++)
         {
-            if (id == this->nodeSet[i].id)
+            if (id == this->nodeArray[i].id)
                 continue;
-            float distance = crowflyDistance(latPoint, lonPoint, this->nodeSet[i].lat, this->nodeSet[i].lon);
-            knearestSet.insert(make_pair(distance, make_pair(this->nodeSet[i].id, this->nodeSet[i].name)));
+            float distance = crowflyDistance(latPoint, lonPoint, this->nodeArray[i].lat, this->nodeArray[i].lon);
+            knearestSet.insert(make_pair(distance, make_pair(this->nodeArray[i].id, this->nodeArray[i].name)));
         }
-        cout << k << " nearest nodes of the given node id : \'" << id << "\' are as following :-" << endl;
+        cout << k << "\n nearest nodes of the given node id : \'" << id << "\' are as following :-\n"
+             << endl;
         int cnt = 1;
         for (auto node : knearestSet)
         {
-            cout << setprecision(8) << fixed << "\t" << cnt << ". node id: " << node.second.first << "; node name: " << node.second.second << "; distance: " << node.first << " kms." << endl;
+            cout << setprecision(8) << fixed << "\t\t" << cnt << ". node id: " << node.second.first << " ; node name: " << node.second.second << " ; distance: " << node.first << " kms." << endl;
             if (cnt >= k)
                 break;
             cnt++;
@@ -214,7 +221,7 @@ public:
     void createGraph()
     {
         // creating a graph with adjacency list
-        for (auto way : this->waySet)
+        for (auto way : this->wayArray)
         {
             float distance = 0.0;
             int size = way.nodes.size();
@@ -224,10 +231,10 @@ public:
                 {
                     if (size > 1)
                     {
-                        distance = crowflyDistance(this->nodeSet[nodeidhash[way.nodes[i]]].lat,
-                                                   this->nodeSet[nodeidhash[way.nodes[i]]].lon,
-                                                   this->nodeSet[nodeidhash[way.nodes[i + 1]]].lat,
-                                                   this->nodeSet[nodeidhash[way.nodes[i + 1]]].lon);
+                        distance = crowflyDistance(this->nodeArray[nodeidhash[way.nodes[i]]].lat,
+                                                   this->nodeArray[nodeidhash[way.nodes[i]]].lon,
+                                                   this->nodeArray[nodeidhash[way.nodes[i + 1]]].lat,
+                                                   this->nodeArray[nodeidhash[way.nodes[i + 1]]].lon);
 
                         graph[way.nodes[i]].push_back({way.nodes[i + 1], distance});
                     }
@@ -236,26 +243,26 @@ public:
                 if (i == size - 1)
                 {
 
-                    distance = crowflyDistance(this->nodeSet[nodeidhash[way.nodes[i]]].lat,
-                                               this->nodeSet[nodeidhash[way.nodes[i]]].lon,
-                                               this->nodeSet[nodeidhash[way.nodes[i - 1]]].lat,
-                                               this->nodeSet[nodeidhash[way.nodes[i - 1]]].lon);
+                    distance = crowflyDistance(this->nodeArray[nodeidhash[way.nodes[i]]].lat,
+                                               this->nodeArray[nodeidhash[way.nodes[i]]].lon,
+                                               this->nodeArray[nodeidhash[way.nodes[i - 1]]].lat,
+                                               this->nodeArray[nodeidhash[way.nodes[i - 1]]].lon);
 
                     graph[way.nodes[i]].push_back({way.nodes[i - 1], distance});
 
                     continue;
                 }
-                distance = crowflyDistance(this->nodeSet[nodeidhash[way.nodes[i]]].lat,
-                                           this->nodeSet[nodeidhash[way.nodes[i]]].lon,
-                                           this->nodeSet[nodeidhash[way.nodes[i + 1]]].lat,
-                                           this->nodeSet[nodeidhash[way.nodes[i + 1]]].lon);
+                distance = crowflyDistance(this->nodeArray[nodeidhash[way.nodes[i]]].lat,
+                                           this->nodeArray[nodeidhash[way.nodes[i]]].lon,
+                                           this->nodeArray[nodeidhash[way.nodes[i + 1]]].lat,
+                                           this->nodeArray[nodeidhash[way.nodes[i + 1]]].lon);
 
                 graph[way.nodes[i]].push_back({way.nodes[i + 1], distance});
 
-                distance = crowflyDistance(this->nodeSet[nodeidhash[way.nodes[i]]].lat,
-                                           this->nodeSet[nodeidhash[way.nodes[i]]].lon,
-                                           this->nodeSet[nodeidhash[way.nodes[i - 1]]].lat,
-                                           this->nodeSet[nodeidhash[way.nodes[i - 1]]].lon);
+                distance = crowflyDistance(this->nodeArray[nodeidhash[way.nodes[i]]].lat,
+                                           this->nodeArray[nodeidhash[way.nodes[i]]].lon,
+                                           this->nodeArray[nodeidhash[way.nodes[i - 1]]].lat,
+                                           this->nodeArray[nodeidhash[way.nodes[i - 1]]].lon);
 
                 graph[way.nodes[i]].push_back({way.nodes[i - 1], distance});
             }
@@ -265,12 +272,12 @@ public:
     float dijkstra(int srcid, int destid)
     {
         // Time Complexity - O(E logV)
-        int size = this->nodeSet.size();
+        int size = this->nodeArray.size();
         map<int, float> length;
         for (int i = 0; i < size; i++)
         {
-            length[this->nodeSet[i].id] = 10000007.0;
-            touch[this->nodeSet[i].id] = srcid;
+            length[this->nodeArray[i].id] = 10000007.0;
+            touch[this->nodeArray[i].id] = srcid;
         }
         touch[srcid] = -1;
         length[srcid] = 0.0;
@@ -307,26 +314,31 @@ public:
     {
         cout << endl;
         cout << "---------------------------------------------------------------------------------------------" << endl;
-        cout << "Type 1: for search for a particular element - (task # 1)" << endl;
-        cout << "Type 2: for finding k nearest nodes of a particular node - (task # 2)" << endl;
-        cout << "Type 3: for finding shortest path between two nodes - A and B - (task # 3)" << endl;
-        cout << "Type any other number for QUIT" << endl;
+        cout << "\tType 1: for printing total number of nodes and ways - (task # 1) Part-1" << endl;
+        cout << "\tType 2: for search for a particular element - (task # 1) Part-2" << endl;
+        cout << "\tType 3: for finding k nearest nodes of a particular node - (task # 2)" << endl;
+        cout << "\tType 4: for finding shortest path between two nodes - A and B - (task # 3)" << endl;
+        cout << "\tType any other number for QUIT" << endl;
         cout << "---------------------------------------------------------------------------------------------" << endl;
     }
     // This function is for creating an User Interface to provide better experience
     void userInterface()
     {
-        cout << "\n---------------------------------------------------------------------------------------------" << endl;
-        cout << "\n\tTotal number of nodes discovered in this map: " << nodeSet.size() << endl;
-        cout << "\tTotal number of ways discovered in this map: " << waySet.size() << endl;
 
+        cout << "\n\n-------------------------------- WELCOME TO OPEN STREET MAP! --------------------------------" << endl;
         while (true)
         {
             prompt();
-            cout << "Type here: ";
+            cout << "Type here: \t";
             int type;
             cin >> type;
-            if (type == 1) // Task #1
+            if (type == 1) // Task #1 Part-1
+            {
+                cout << "\n---------------------------------------------------------------------------------------------" << endl;
+                cout << "\n\tTotal number of nodes discovered in this map: " << nodeArray.size() << endl;
+                cout << "\tTotal number of ways discovered in this map: " << wayArray.size() << endl;
+            }
+            else if (type == 2) // Task #1 Part-2
             {
                 cout << "\nEnter the string which you want to search: ";
                 string str;
@@ -334,7 +346,7 @@ public:
                 getline(cin, str);
                 this->findelement(str);
             }
-            else if (type == 2) // Task #2
+            else if (type == 3) // Task #2
             {
                 cout << "\nEnter the ID of node: ";
                 int ID, k;
@@ -342,21 +354,23 @@ public:
                 int index = this->checknodeID(ID);
                 if (index < 0)
                 {
-                    cout << "\n\tSorry, This ID is not valid!" << endl;
+                    cout << "\n\t\tSorry, This ID is not valid!\n"
+                         << endl;
                     continue;
                 }
                 cout << "\nEnter k (number of nearest nodes): ";
                 cin >> k;
-                this->Kclosestnode(nodeSet[index].id, nodeSet[index].lat, nodeSet[index].lon, k);
+                this->Kclosestnode(nodeArray[index].id, nodeArray[index].lat, nodeArray[index].lon, k);
             }
-            else if (type == 3) // Task #3
+            else if (type == 4) // Task #3
             {
                 cout << "\nEnter the ID of node A: ";
                 int IDa;
                 cin >> IDa;
                 if (this->checknodeID(IDa) < 0)
                 {
-                    cout << "\nSorry, This ID is not valid!" << endl;
+                    cout << "\n\t\tSorry, This ID is not valid!\n"
+                         << endl;
                     continue;
                 }
                 cout << "\nEnter the ID of node B: ";
@@ -364,19 +378,23 @@ public:
                 cin >> IDb;
                 if (this->checknodeID(IDb) < 0)
                 {
-                    cout << "\nSorry, This ID is not valid!" << endl;
+                    cout << "\n\t\tSorry, This ID is not valid!\n"
+                         << endl;
                     continue;
                 }
                 float ShortestPathLength = this->dijkstra(IDa, IDb);
                 if (ShortestPathLength < 0)
                 {
-                    cout << "\nThese two nodes are not connected by any way!" << endl;
+                    cout << "\n\t\tThese two nodes are not connected by any way!\n"
+                         << endl;
                     continue;
                 }
-                cout << setprecision(8) << fixed << "\nShortest path length between A and B: " << ShortestPathLength << " kms." << endl;
-                cout << "\nThe path is as following :- " << endl;
+                cout << setprecision(8) << fixed << "\n\n\tShortest path length between A and B: " << ShortestPathLength << " kms.\n"
+                     << endl;
+                cout << "\nThe path is as following :- \n"
+                     << endl;
                 int node = IDb;
-                cout << "B = " << node;
+                cout << "\tB = " << node;
                 while (this->touch[node] > 0)
                 {
                     cout << " <- " << this->touch[node];
@@ -386,7 +404,7 @@ public:
             }
             else
             {
-                cout << "\nThank You\n"
+                cout << "\n\t\t\tThank You!\n"
                      << endl;
                 return;
             }
@@ -396,19 +414,14 @@ public:
 
 signed main()
 {
-    // #ifndef ONLINE_JUDGE
-    //     freopen("input.txt", "r", stdin);
-    //     freopen("output.txt", "w", stdout);
-    // #endif
-
     // Delaring an object of class OpenStreetMap
     OpenStreetMap OSM;
 
-    OSM.parsing();
-    OSM.hashing();
-    OSM.createGraph();
+    OSM.parsing();     // Calling for parsing of map.osm
+    OSM.hashing();     // Creating a hash between node id and index in the node Array
+    OSM.createGraph(); // Creating a graph using Adjacency List
 
-    OSM.userInterface();
+    OSM.userInterface(); // Creating a User Interface to operate the program
 
     return 0;
 }
